@@ -1,17 +1,15 @@
-// page/api/movies/[idMovie]/comments/route.ts
+// app/api/movies/[idMovie]/comments/route.ts
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import { Db, MongoClient, ObjectId } from 'mongodb';
-
-
 
 /**
  * @swagger
  * /api/movies/{idMovie}/comments:
  *   get:
- *     summary: Get a movie by ID
- *     description: Retrieve a single movie document by its MongoDB ObjectId.
+ *     summary: Get comments for a movie
+ *     description: Retrieve all comments for a movie identified by its MongoDB ObjectId.
  *     parameters:
  *       - in: path
  *         name: idMovie
@@ -29,15 +27,17 @@ import { Db, MongoClient, ObjectId } from 'mongodb';
  *       500:
  *         description: Internal server error
  */
-
-export async function GET(request: Request, { params }: { params: { idMovie: string } }): Promise<NextResponse> {
+export async function GET(
+  request: NextRequest,
+  context: { params: { idMovie: string } }
+): Promise<NextResponse> {
   try {
     const client: MongoClient = await clientPromise;
     const db: Db = client.db('sample_mflix');
-    
-    const { idMovie } = params;
+
+    const { idMovie } = context.params;
     if (!ObjectId.isValid(idMovie)) {
-      return NextResponse.json({ status: 400, message: 'Invalid movie ID', error: 'ID format is incorrect' });
+      return NextResponse.json({ status: 400, message: 'Invalid movie ID', error: 'ID format is incorrect' }, { status: 400 });
     }
 
     const comments = await db
@@ -47,13 +47,6 @@ export async function GET(request: Request, { params }: { params: { idMovie: str
 
     return NextResponse.json({ status: 200, data: { comments } });
   } catch (error: any) {
-    return NextResponse.json({ status: 500, message: 'Internal Server Error', error: error.message });
+    return NextResponse.json({ status: 500, message: 'Internal Server Error', error: error.message }, { status: 500 });
   }
 }
-
-
-
-
-
-
-
