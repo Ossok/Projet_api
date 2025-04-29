@@ -35,7 +35,7 @@ import { Db, MongoClient, ObjectId } from 'mongodb';
  */
 export async function GET(
   request: Request, 
-  { params }: { params: { idMovie: string, idComment: string } }
+  { params }: { params }: { params: any }
 ): Promise<NextResponse> {
   try {
     const client: MongoClient = await clientPromise;
@@ -116,7 +116,7 @@ export async function GET(
  */
 export async function POST(
   request: Request,
-  { params }: { params: { idMovie: string, idComment: string } }
+  { params }: { params }: { params: any }
 ): Promise<NextResponse> {
   try {
     const { idMovie, idComment } = params;
@@ -215,7 +215,7 @@ export async function POST(
  */
 export async function DELETE(
   request: Request,
-  { params }: { params: { idMovie: string; idComment: string } }
+  { params }: { params }: { params: any }
 ): Promise<NextResponse> {
   try {
     const client: MongoClient = await clientPromise;
@@ -322,7 +322,7 @@ export async function DELETE(
  */
 export async function PUT(
   request: Request,
-  { params }: { params: { idMovie: string; idComment: string } }
+  { params }: { params }: { params: any }
 ): Promise<NextResponse> {
   try {
     const client: MongoClient = await clientPromise;
