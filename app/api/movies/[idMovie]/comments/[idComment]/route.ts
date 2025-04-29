@@ -35,7 +35,7 @@ import { Db, MongoClient, ObjectId } from 'mongodb';
  */
 export async function GET(
   request: Request, 
-  { params }: { params: { params: any } }
+  { params }: { params: { idMovie: any, idComment: any } }
 ): Promise<NextResponse> {
   try {
     const client: MongoClient = await clientPromise;
@@ -115,73 +115,73 @@ export async function GET(
  *         description: Internal server error
  */
 export async function POST(
-    request: Request,
-    { params }: { params: { params: any } }
-  ): Promise<NextResponse> {
-    try {
-      const { idMovie, idComment } = params;
-      
-      if (!idMovie || !idComment) {
-        return NextResponse.json({ 
-          status: 400, 
-          message: 'Movie ID and Comment ID are required' 
-        });
-      }
-      
-      // Validate MongoDB ObjectId format
-      if (!ObjectId.isValid(idMovie) || !ObjectId.isValid(idComment)) {
-        return NextResponse.json({ 
-          status: 400, 
-          message: 'Invalid ID format' 
-        });
-      }
-  
-      // Parse request body
-      const body = await request.json();
-      
-      if (!body || (!body.text && !body.user)) {
-        return NextResponse.json({ 
-          status: 400, 
-          message: 'Request body must contain at least text or user field' 
-        });
-      }
-  
-      const client: MongoClient = await clientPromise;
-      const db: Db = client.db('sample_mflix');
-      
-      // Update the comment
-      const result = await db.collection('comments').updateOne(
-        { 
-          _id: new ObjectId(idComment),
-          movie_id: new ObjectId(idMovie)
-        },
-        { $set: body }
-      );
-  
-      if (result.matchedCount === 0) {
-        return NextResponse.json({ 
-          status: 404, 
-          message: 'Movie or comment not found' 
-        });
-      }
-  
+  request: Request,
+  { params }: { params: { idMovie: any, idComment: any } }
+): Promise<NextResponse> {
+  try {
+    const { idMovie, idComment } = params;
+    
+    if (!idMovie || !idComment) {
       return NextResponse.json({ 
-        status: 200, 
-        message: 'Comment updated successfully', 
-        data: { 
-          modified: result.modifiedCount > 0,
-          idMovie,
-          idComment
-        }
-      });
-    } catch (error: any) {
-      return NextResponse.json({ 
-        status: 500, 
-        message: 'Internal server error', 
-        error: error.message 
+        status: 400, 
+        message: 'Movie ID and Comment ID are required' 
       });
     }
+    
+    // Validate MongoDB ObjectId format
+    if (!ObjectId.isValid(idMovie) || !ObjectId.isValid(idComment)) {
+      return NextResponse.json({ 
+        status: 400, 
+        message: 'Invalid ID format' 
+      });
+    }
+
+    // Parse request body
+    const body = await request.json();
+    
+    if (!body || (!body.text && !body.user)) {
+      return NextResponse.json({ 
+        status: 400, 
+        message: 'Request body must contain at least text or user field' 
+      });
+    }
+
+    const client: MongoClient = await clientPromise;
+    const db: Db = client.db('sample_mflix');
+    
+    // Update the comment
+    const result = await db.collection('comments').updateOne(
+      { 
+        _id: new ObjectId(idComment),
+        movie_id: new ObjectId(idMovie)
+      },
+      { $set: body }
+    );
+
+    if (result.matchedCount === 0) {
+      return NextResponse.json({ 
+        status: 404, 
+        message: 'Movie or comment not found' 
+      });
+    }
+
+    return NextResponse.json({ 
+      status: 200, 
+      message: 'Comment updated successfully', 
+      data: { 
+        modified: result.modifiedCount > 0,
+        idMovie,
+        idComment
+      }
+    });
+  } catch (error: any) {
+    return NextResponse.json({ 
+      status: 500, 
+      message: 'Internal server error', 
+      error: error.message 
+    });
   }
+}
 
 
 /**
@@ -215,7 +215,7 @@ export async function POST(
  */
 export async function DELETE(
   request: Request,
-  { params }: { params: { params: any } }
+  { params }: { params: { idMovie: any; idComment: any } }
 ): Promise<NextResponse> {
   try {
     const client: MongoClient = await clientPromise;
@@ -322,7 +322,7 @@ export async function DELETE(
  */
 export async function PUT(
   request: Request,
-  { params }: { params: { params: any } }
+  { params }: { params: { idMovie: any; idComment: any } }
 ): Promise<NextResponse> {
   try {
     const client: MongoClient = await clientPromise;
