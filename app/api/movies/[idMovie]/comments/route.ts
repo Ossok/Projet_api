@@ -30,7 +30,7 @@ import { Db, MongoClient, ObjectId } from 'mongodb';
  *         description: Internal server error
  */
 
-export async function GET(request: Request, { params }: { params: { idMovie: any } }): Promise<NextResponse> {
+export async function GET(request: Request, { params }: { params: { params: any } }): Promise<NextResponse> {
   try {
     const client: MongoClient = await clientPromise;
     const db: Db = client.db('sample_mflix');
