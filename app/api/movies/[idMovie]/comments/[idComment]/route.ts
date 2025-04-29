@@ -1,6 +1,6 @@
-// app/api/movies/[idMovie]/comments/[idComment]/route.ts
+// page/api/movies/[idMovie]/comments/[idComment]/route.ts
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import { Db, MongoClient, ObjectId } from 'mongodb';
 
@@ -34,43 +34,43 @@ import { Db, MongoClient, ObjectId } from 'mongodb';
  *         description: Internal server error
  */
 export async function GET(
-  request: NextRequest,
-  context: { params: { idMovie: string; idComment: string } }
+  request: Request, 
+  { params }: { params: { idMovie: string, idComment: string } }
 ): Promise<NextResponse> {
   try {
     const client: MongoClient = await clientPromise;
     const db: Db = client.db('sample_mflix');
-
-    const { idMovie, idComment } = context.params;
-
+    
+    const { idMovie, idComment } = params;
+    
     // Validate IDs
     if (!ObjectId.isValid(idMovie)) {
-      return NextResponse.json({ status: 400, message: 'Invalid movie ID', error: 'Movie ID format is incorrect' }, { status: 400 });
+      return NextResponse.json({ status: 400, message: 'Invalid movie ID', error: 'Movie ID format is incorrect' });
     }
-
+    
     if (!ObjectId.isValid(idComment)) {
-      return NextResponse.json({ status: 400, message: 'Invalid comment ID', error: 'Comment ID format is incorrect' }, { status: 400 });
+      return NextResponse.json({ status: 400, message: 'Invalid comment ID', error: 'Comment ID format is incorrect' });
     }
-
+    
     // Check if movie exists
     const movie = await db.collection('movies').findOne({ _id: new ObjectId(idMovie) });
     if (!movie) {
-      return NextResponse.json({ status: 404, message: 'Movie not found', error: 'No movie found with the given ID' }, { status: 404 });
+      return NextResponse.json({ status: 404, message: 'Movie not found', error: 'No movie found with the given ID' });
     }
-
+    
     // Find the comment for this movie
-    const comment = await db.collection('comments').findOne({
+    const comment = await db.collection('comments').findOne({ 
       _id: new ObjectId(idComment),
-      movie_id: new ObjectId(idMovie),
+      movie_id: new ObjectId(idMovie)
     });
-
+    
     if (!comment) {
-      return NextResponse.json({ status: 404, message: 'Comment not found', error: 'No comment found with the given ID for this movie' }, { status: 404 });
+      return NextResponse.json({ status: 404, message: 'Comment not found', error: 'No comment found with the given ID for this movie' });
     }
-
+    
     return NextResponse.json({ status: 200, data: { comment } });
   } catch (error: any) {
-    return NextResponse.json({ status: 500, message: 'Internal Server Error', error: error.message }, { status: 500 });
+    return NextResponse.json({ status: 500, message: 'Internal Server Error', error: error.message });
   }
 }
 
@@ -115,57 +115,74 @@ export async function GET(
  *         description: Internal server error
  */
 export async function POST(
-  request: NextRequest,
-  context: { params: { idMovie: string; idComment: string } }
+  request: Request,
+  { params }: { params: { idMovie: string, idComment: string } }
 ): Promise<NextResponse> {
   try {
-    const { idMovie, idComment } = context.params;
-
+    const { idMovie, idComment } = params;
+    
     if (!idMovie || !idComment) {
-      return NextResponse.json({ status: 400, message: 'Movie ID and Comment ID are required' }, { status: 400 });
+      return NextResponse.json({ 
+        status: 400, 
+        message: 'Movie ID and Comment ID are required' 
+      });
     }
-
+    
     // Validate MongoDB ObjectId format
     if (!ObjectId.isValid(idMovie) || !ObjectId.isValid(idComment)) {
-      return NextResponse.json({ status: 400, message: 'Invalid ID format' }, { status: 400 });
+      return NextResponse.json({ 
+        status: 400, 
+        message: 'Invalid ID format' 
+      });
     }
 
     // Parse request body
     const body = await request.json();
-
+    
     if (!body || (!body.text && !body.user)) {
-      return NextResponse.json({ status: 400, message: 'Request body must contain at least text or user field' }, { status: 400 });
+      return NextResponse.json({ 
+        status: 400, 
+        message: 'Request body must contain at least text or user field' 
+      });
     }
 
     const client: MongoClient = await clientPromise;
     const db: Db = client.db('sample_mflix');
-
+    
     // Update the comment
     const result = await db.collection('comments').updateOne(
-      {
+      { 
         _id: new ObjectId(idComment),
-        movie_id: new ObjectId(idMovie),
+        movie_id: new ObjectId(idMovie)
       },
       { $set: body }
     );
 
     if (result.matchedCount === 0) {
-      return NextResponse.json({ status: 404, message: 'Movie or comment not found' }, { status: 404 });
+      return NextResponse.json({ 
+        status: 404, 
+        message: 'Movie or comment not found' 
+      });
     }
 
-    return NextResponse.json({
-      status: 200,
-      message: 'Comment updated successfully',
-      data: {
+    return NextResponse.json({ 
+      status: 200, 
+      message: 'Comment updated successfully', 
+      data: { 
         modified: result.modifiedCount > 0,
         idMovie,
-        idComment,
-      },
+        idComment
+      }
     });
   } catch (error: any) {
-    return NextResponse.json({ status: 500, message: 'Internal server error', error: error.message }, { status: 500 });
+    return NextResponse.json({ 
+      status: 500, 
+      message: 'Internal server error', 
+      error: error.message 
+    });
   }
 }
+
 
 /**
  * @swagger
@@ -197,45 +214,68 @@ export async function POST(
  *         description: Internal server error
  */
 export async function DELETE(
-  request: NextRequest,
-  context: { params: { idMovie: string; idComment: string } }
+  request: Request,
+  { params }: { params: { idMovie: string; idComment: string } }
 ): Promise<NextResponse> {
   try {
     const client: MongoClient = await clientPromise;
     const db: Db = client.db('sample_mflix');
-    const { idMovie, idComment } = context.params;
+    const { idMovie, idComment } = params;
 
     // Validate ObjectIds
     if (!ObjectId.isValid(idMovie)) {
-      return NextResponse.json({ status: 400, message: 'Invalid movie ID', error: 'Movie ID format is incorrect' }, { status: 400 });
+      return NextResponse.json({ 
+        status: 400, 
+        message: 'Invalid movie ID', 
+        error: 'Movie ID format is incorrect' 
+      });
     }
-
+    
     if (!ObjectId.isValid(idComment)) {
-      return NextResponse.json({ status: 400, message: 'Invalid comment ID', error: 'Comment ID format is incorrect' }, { status: 400 });
+      return NextResponse.json({ 
+        status: 400, 
+        message: 'Invalid comment ID', 
+        error: 'Comment ID format is incorrect' 
+      });
     }
 
     // Verify the movie exists
-    const movie = await db.collection('movies').findOne({
-      _id: new ObjectId(idMovie),
+    const movie = await db.collection('movies').findOne({ 
+      _id: new ObjectId(idMovie) 
     });
 
     if (!movie) {
-      return NextResponse.json({ status: 404, message: 'Movie not found', error: 'No movie found with the given ID' }, { status: 404 });
+      return NextResponse.json({ 
+        status: 404, 
+        message: 'Movie not found', 
+        error: 'No movie found with the given ID' 
+      });
     }
 
     // Delete the comment
-    const result = await db.collection('comments').deleteOne({
+    const result = await db.collection('comments').deleteOne({ 
       _id: new ObjectId(idComment),
-      movie_id: new ObjectId(idMovie),
+      movie_id: new ObjectId(idMovie)
     });
 
     if (result.deletedCount === 0) {
-      return NextResponse.json({ status: 404, message: 'Comment not found', error: 'No comment found with the given ID for this movie' }, { status: 404 });
+      return NextResponse.json({ 
+        status: 404, 
+        message: 'Comment not found', 
+        error: 'No comment found with the given ID for this movie' 
+      });
     }
 
-    return NextResponse.json({ status: 200, message: 'Comment deleted successfully' });
+    return NextResponse.json({ 
+      status: 200, 
+      message: 'Comment deleted successfully' 
+    });
   } catch (error: any) {
-    return NextResponse.json({ status: 500, message: 'Internal Server Error', error: error.message }, { status: 500 });
+    return NextResponse.json({ 
+      status: 500, 
+      message: 'Internal Server Error', 
+      error: error.message 
+    });
   }
 }
 
@@ -281,26 +321,35 @@ export async function DELETE(
  *         description: Internal server error
  */
 export async function PUT(
-  request: NextRequest,
-  context: { params: { idMovie: string; idComment: string } }
+  request: Request,
+  { params }: { params: { idMovie: string; idComment: string } }
 ): Promise<NextResponse> {
   try {
     const client: MongoClient = await clientPromise;
     const db: Db = client.db('sample_mflix');
-    const { idMovie, idComment } = context.params;
+    const { idMovie, idComment } = params;
     const body = await request.json();
 
     // Validate movie and comment IDs
     if (!ObjectId.isValid(idMovie)) {
-      return NextResponse.json({ status: 400, message: 'Invalid movie ID', error: 'Movie ID format is incorrect' }, { status: 400 });
+      return NextResponse.json(
+        { status: 400, message: 'Invalid movie ID', error: 'Movie ID format is incorrect' },
+        { status: 400 }
+      );
     }
     if (!ObjectId.isValid(idComment)) {
-      return NextResponse.json({ status: 400, message: 'Invalid comment ID', error: 'Comment ID format is incorrect' }, { status: 400 });
+      return NextResponse.json(
+        { status: 400, message: 'Invalid comment ID', error: 'Comment ID format is incorrect' },
+        { status: 400 }
+      );
     }
 
     // Validate request body
     if (!body.text || typeof body.text !== 'string') {
-      return NextResponse.json({ status: 400, message: 'Invalid input', error: 'Comment text is required and must be a string' }, { status: 400 });
+      return NextResponse.json(
+        { status: 400, message: 'Invalid input', error: 'Comment text is required and must be a string' },
+        { status: 400 }
+      );
     }
 
     // Update the specific comment in the movie's comments array
@@ -316,11 +365,20 @@ export async function PUT(
 
     // Check if the movie or comment was found
     if (result.matchedCount === 0) {
-      return NextResponse.json({ status: 404, message: 'Movie or comment not found', error: 'No matching movie or comment with the given IDs' }, { status: 404 });
+      return NextResponse.json(
+        { status: 404, message: 'Movie or comment not found', error: 'No matching movie or comment with the given IDs' },
+        { status: 404 }
+      );
     }
 
-    return NextResponse.json({ status: 200, message: 'Comment updated successfully' });
+    return NextResponse.json(
+      { status: 200, message: 'Comment updated successfully' },
+      { status: 200 }
+    );
   } catch (error: any) {
-    return NextResponse.json({ status: 500, message: 'Internal Server Error', error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { status: 500, message: 'Internal Server Error', error: error.message },
+      { status: 500 }
+    );
   }
 }

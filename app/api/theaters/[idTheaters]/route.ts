@@ -1,9 +1,8 @@
-// app/api/theaters/[idTheater]/route.ts
+// page/api/theaters/[idTheater]/route.ts
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import { Db, MongoClient, ObjectId } from 'mongodb';
-
 /**
  * @swagger
  * /api/theaters/{idTheater}:
@@ -16,7 +15,7 @@ import { Db, MongoClient, ObjectId } from 'mongodb';
  *         required: true
  *         schema:
  *           type: string
- *         description: MongoDB ObjectId of the theater
+ *         description: MongoDB ObjectId of the Theater
  *     responses:
  *       200:
  *         description: Theater found
@@ -27,27 +26,24 @@ import { Db, MongoClient, ObjectId } from 'mongodb';
  *       500:
  *         description: Internal server error
  */
-export async function GET(
-  request: NextRequest,
-  context: { params: { idTheater: string } }
-): Promise<NextResponse> {
+export async function GET(request: Request, { params }: { params: { idTheater: string } }): Promise<NextResponse> {
   try {
     const client: MongoClient = await clientPromise;
     const db: Db = client.db('sample_mflix');
-
-    const { idTheater } = context.params;
+    
+    const { idTheater } = params;
     if (!ObjectId.isValid(idTheater)) {
-      return NextResponse.json({ status: 400, message: 'Invalid theater ID', error: 'ID format is incorrect' }, { status: 400 });
+      return NextResponse.json({ status: 400, message: 'Invalid Theaters ID', error: 'ID format is incorrect' });
     }
-
+    
     const theater = await db.collection('theaters').findOne({ _id: new ObjectId(idTheater) });
-
+    
     if (!theater) {
-      return NextResponse.json({ status: 404, message: 'Theater not found', error: 'No theater found with the given ID' }, { status: 404 });
+      return NextResponse.json({ status: 404, message: 'Theater not found', error: 'No Theater found with the given ID' });
     }
-
+    
     return NextResponse.json({ status: 200, data: { theater } });
   } catch (error: any) {
-    return NextResponse.json({ status: 500, message: 'Internal Server Error', error: error.message }, { status: 500 });
+    return NextResponse.json({ status: 500, message: 'Internal Server Error', error: error.message });
   }
 }
