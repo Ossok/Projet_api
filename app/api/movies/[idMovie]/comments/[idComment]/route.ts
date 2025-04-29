@@ -283,8 +283,8 @@ export async function DELETE(
  * @swagger
  * /api/movies/{idMovie}/comments/{idComment}:
  *   put:
- *     summary: Update a comment by ID for a specific movie
- *     description: Update the text of a specific comment in a movie's comments array, identified by the movie's MongoDB ObjectId and the comment's ObjectId.
+ *     summary: Update a specific comment for a movie
+ *     description: Update a comment by its ID for a specific movie.
  *     parameters:
  *       - in: path
  *         name: idMovie
@@ -307,14 +307,13 @@ export async function DELETE(
  *             properties:
  *               text:
  *                 type: string
- *                 description: Updated text of the comment
- *             required:
- *               - text
+ *               user:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Comment updated successfully
  *       400:
- *         description: Invalid movie ID, comment ID, or missing text
+ *         description: Invalid ID format or request body
  *       404:
  *         description: Movie or comment not found
  *       500:
@@ -325,60 +324,63 @@ export async function PUT(
   { params }: { params: any }
 ): Promise<NextResponse> {
   try {
-    const client: MongoClient = await clientPromise;
-    const db: Db = client.db('sample_mflix');
     const { idMovie, idComment } = params;
+
+    if (!idMovie || !idComment) {
+      return NextResponse.json({
+        status: 400,
+        message: 'Movie ID and Comment ID are required'
+      });
+    }
+
+    if (!ObjectId.isValid(idMovie) || !ObjectId.isValid(idComment)) {
+      return NextResponse.json({
+        status: 400,
+        message: 'Invalid ID format'
+      });
+    }
+
     const body = await request.json();
 
-    // Validate movie and comment IDs
-    if (!ObjectId.isValid(idMovie)) {
-      return NextResponse.json(
-        { status: 400, message: 'Invalid movie ID', error: 'Movie ID format is incorrect' },
-        { status: 400 }
-      );
-    }
-    if (!ObjectId.isValid(idComment)) {
-      return NextResponse.json(
-        { status: 400, message: 'Invalid comment ID', error: 'Comment ID format is incorrect' },
-        { status: 400 }
-      );
+    if (!body || (!body.text && !body.user)) {
+      return NextResponse.json({
+        status: 400,
+        message: 'Request body must contain at least text or user field'
+      });
     }
 
-    // Validate request body
-    if (!body.text || typeof body.text !== 'string') {
-      return NextResponse.json(
-        { status: 400, message: 'Invalid input', error: 'Comment text is required and must be a string' },
-        { status: 400 }
-      );
-    }
+    const client: MongoClient = await clientPromise;
+    const db: Db = client.db('sample_mflix');
 
-    // Update the specific comment in the movie's comments array
-    const result = await db.collection('movies').updateOne(
-      { _id: new ObjectId(idMovie), 'comments._id': new ObjectId(idComment) },
+    const result = await db.collection('comments').updateOne(
       {
-        $set: {
-          'comments.$.text': body.text,
-          'comments.$.updatedAt': new Date(),
-        },
-      }
+        _id: new ObjectId(idComment),
+        movie_id: new ObjectId(idMovie)
+      },
+      { $set: body }
     );
 
-    // Check if the movie or comment was found
     if (result.matchedCount === 0) {
-      return NextResponse.json(
-        { status: 404, message: 'Movie or comment not found', error: 'No matching movie or comment with the given IDs' },
-        { status: 404 }
-      );
+      return NextResponse.json({
+        status: 404,
+        message: 'Movie or comment not found'
+      });
     }
 
-    return NextResponse.json(
-      { status: 200, message: 'Comment updated successfully' },
-      { status: 200 }
-    );
+    return NextResponse.json({
+      status: 200,
+      message: 'Comment updated successfully',
+      data: {
+        modified: result.modifiedCount > 0,
+        idMovie,
+        idComment
+      }
+    });
   } catch (error: any) {
-    return NextResponse.json(
-      { status: 500, message: 'Internal Server Error', error: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      status: 500,
+      message: 'Internal server error',
+      error: error.message
+    });
   }
 }
